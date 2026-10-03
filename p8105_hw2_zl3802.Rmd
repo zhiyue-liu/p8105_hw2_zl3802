@@ -5,3 +5,257 @@ date: "2026-10-03"
 output: github_document
 ---
 
+
+# Problem 1
+```{r}
+library(tidyverse)
+library(janitor)
+
+subway_data =
+  read_csv("data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") |>
+  clean_names() |>
+  select(
+    line, station_name, station_latitude, station_longitude,
+    route1:route11, entry, vending, entrance_type, ada
+  ) |>
+  mutate(
+    entry = entry == "YES"
+  )
+
+dim(subway_data)
+```
+
+This dataset includes information about subway lines, station names, station locations, routes, entry, vending, entrance type, and ADA status. I cleaned the data by fixing the variable names, keeping only the variables needed for this problem, and change entry from YES/NO to TRUE/FALSE. The cleaned dataset has 1868 rows and 19 columns. The data are not completely tidy because the route information is spread across several columns.
+
+```{r}
+subway_data |>
+  distinct(line, station_name) |>
+  nrow()
+
+subway_data |>
+  filter(ada == TRUE) |>
+  distinct(line, station_name) |>
+  nrow()
+```
+
+There are 465 distinct stations, and 84 are ADA compliant.
+
+```{r}
+subway_data |>
+  filter(vending == "NO") |>
+  summarize(entry_proportion = mean(entry))
+```
+
+The proportion of entrances exits without vending that allow entrance is approximately 0.377.
+
+```{r}
+subway_long =
+  subway_data |>
+  mutate(across(route1:route11, as.character)) |>
+  pivot_longer(
+    route1:route11,
+    names_to = "route_number",
+    values_to = "route_name"
+  )
+
+subway_long |>
+  filter(route_name == "A") |>
+  distinct(line, station_name) |>
+  nrow()
+
+subway_long |>
+  filter(route_name == "A", ada == TRUE) |>
+  distinct(line, station_name) |>
+  nrow()
+```
+
+There are 60 distinct stations that serve the A train, and 17 of these stations are ADA compliant.
+
+
+
+# Problem 2
+
+```{r}
+library(readxl)
+
+mr_trash =
+  read_excel(
+    "data/202509 Trash Wheel Collection Data.xlsx",
+    sheet = "Mr. Trash Wheel",
+    range = "A2:N709"
+  ) |>
+  clean_names() |>
+  drop_na(dumpster) |>
+  mutate(
+    month = str_trim(month),
+    year = as.integer(year),
+    sports_balls = as.integer(round(sports_balls)),
+    trash_wheel = "Mr. Trash Wheel"
+  )
+
+professor_trash =
+  read_excel(
+    "data/202509 Trash Wheel Collection Data.xlsx",
+    sheet = "Professor Trash Wheel",
+    range = "A2:M134"
+  ) |>
+  clean_names() |>
+  drop_na(dumpster) |>
+  mutate(
+    month = str_trim(month),
+    year = as.integer(year),
+    trash_wheel = "Professor Trash Wheel"
+  )
+
+gwynnda_trash =
+  read_excel(
+    "data/202509 Trash Wheel Collection Data.xlsx",
+    sheet = "Gwynns Falls Trash Wheel",
+    range = "A2:L351"
+  ) |>
+  clean_names() |>
+  drop_na(dumpster) |>
+  mutate(
+    month = str_trim(month),
+    year = as.integer(year),
+    trash_wheel = "Gwynnda"
+  )
+```
+
+```{r}
+trash_data =
+  bind_rows(
+    mr_trash,
+    professor_trash,
+    gwynnda_trash
+  )
+
+nrow(trash_data)
+```
+
+The combined dataset has 1188 observations. It includes information like the dumpster number, month and year, trash weight, volume, plastic bottles, cigarette butts, and which Trash Wheel collected the trash. I cleaned the three sheets, removed rows that did not have dumpster data, and then combined them into one dataset.
+
+```{r}
+trash_data |>
+  filter(trash_wheel == "Professor Trash Wheel") |>
+  summarize(
+    total_weight = sum(weight_tons, na.rm = TRUE)
+  )
+
+trash_data |>
+  filter(
+    trash_wheel == "Gwynnda",
+    month == "June",
+    year == 2022
+  ) |>
+  summarize(
+    total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE)
+  )
+```
+
+Professor Trash Wheel collected a total of 282.26 tons of trash. In June 2022, Gwynnda collected 18120 cigarette butts.
+
+
+
+# Problem 3
+
+```{r}
+baseline_data =
+  read_csv(
+    "data/MCI_baseline.csv",
+    skip = 1,
+    na = "."
+  ) |>
+  clean_names() |>
+  mutate(
+    sex = if_else(sex == 1, "Male", "Female"),
+    apoe4 = if_else(apoe4 == 1, "Carrier", "Non-carrier")
+  ) |>
+  filter(
+    is.na(age_at_onset) | age_at_onset > current_age
+  )
+
+baseline_data |>
+  summarize(
+    participants = n(),
+    developed_mci = sum(!is.na(age_at_onset)),
+    average_age = mean(current_age)
+  )
+
+baseline_data |>
+  filter(sex == "Female") |>
+  summarize(
+    apoe4_proportion = mean(apoe4 == "Carrier")
+  )
+```
+
+I skipped the first descriptive row, cleaned the variable names, changed sex and APOE4 status from numbers to labels, and removed participants who already had MCI at baseline. After cleaning, there are 479 participants, 93 developed MCI during follow-up, and the average baseline age is about 65.03 years. Among the women in the study, 30% are APOE4 carriers.
+
+```{r}
+amyloid_data =
+  read_csv(
+    "data/mci_amyloid.csv",
+    skip = 1,
+    na = c("NA", "Na")
+  ) |>
+  clean_names() |>
+  rename(id = study_id) |>
+  pivot_longer(
+    baseline:time_8,
+    names_to = "visit",
+    values_to = "amyloid_ratio"
+  ) |>
+  mutate(
+    time = case_when(
+      visit == "baseline" ~ 0,
+      visit == "time_2" ~ 2,
+      visit == "time_4" ~ 4,
+      visit == "time_6" ~ 6,
+      visit == "time_8" ~ 8
+    )
+  ) |>
+  select(id, time, amyloid_ratio)
+
+n_distinct(amyloid_data$id)
+nrow(amyloid_data)
+```
+
+I also skipped the first descriptive row in the amyloid file and reshaped the repeated measurements into long format. The dataset includes 487 participants with amyloid measurements taken at several time points, and some measurements are missing.
+
+```{r}
+amyloid_ids =
+  amyloid_data |>
+  distinct(id)
+
+baseline_only =
+  baseline_data |>
+  anti_join(amyloid_ids, by = "id")
+
+amyloid_only =
+  amyloid_ids |>
+  anti_join(baseline_data, by = "id")
+
+nrow(baseline_only)
+nrow(amyloid_only)
+```
+
+There are 8 participants who appear only in the cleaned baseline dataset and 16 who appear only in the amyloid dataset.
+
+```{r}
+mci_data =
+  baseline_data |>
+  inner_join(
+    amyloid_data,
+    by = "id"
+  )
+
+dim(mci_data)
+n_distinct(mci_data$id)
+
+write_csv(
+  mci_data,
+  "data/mci_complete.csv"
+)
+```
+
+After keeping only participants who appear in both datasets, the final dataset has 471 participants, 2355 rows, and 8 variables. I saved the combined dataset as mci_complete.csv in the data folder.
