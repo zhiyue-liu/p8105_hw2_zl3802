@@ -80,9 +80,9 @@ library(readxl)
 
 mr_trash =
   read_excel(
-    "data/202509 Trash Wheel Collection Data.xlsx",
+    "data/202610 Trash Wheel Collection Data.xlsx",
     sheet = "Mr. Trash Wheel",
-    range = "A2:N709"
+    range = "A2:N742"
   ) |>
   clean_names() |>
   drop_na(dumpster) |>
@@ -95,9 +95,10 @@ mr_trash =
 
 professor_trash =
   read_excel(
-    "data/202509 Trash Wheel Collection Data.xlsx",
+    "data/202610 Trash Wheel Collection Data.xlsx",
     sheet = "Professor Trash Wheel",
-    range = "A2:M134"
+    range = "A2:M139",
+na = "dive"
   ) |>
   clean_names() |>
   drop_na(dumpster) |>
@@ -109,9 +110,9 @@ professor_trash =
 
 gwynnda_trash =
   read_excel(
-    "data/202509 Trash Wheel Collection Data.xlsx",
-    sheet = "Gwynns Falls Trash Wheel",
-    range = "A2:L351"
+    "data/202610 Trash Wheel Collection Data.xlsx",
+    sheet = "Gwynnda the Good Wheel of the W",
+    range = "A2:L394"
   ) |>
   clean_names() |>
   drop_na(dumpster) |>
@@ -133,7 +134,7 @@ trash_data =
 nrow(trash_data)
 ```
 
-The combined dataset has 1188 observations. It includes information like the dumpster number, month and year, trash weight, volume, plastic bottles, cigarette butts, and which Trash Wheel collected the trash. I cleaned the three sheets, removed rows that did not have dumpster data, and then combined them into one dataset.
+The combined dataset has 1269 observations. It includes information like the dumpster number, month and year, trash weight, volume, plastic bottles, cigarette butts, and which Trash Wheel collected the trash. I cleaned the three sheets, removed rows that did not have dumpster data, and then combined them into one dataset.
 
 ```{r}
 trash_data |>
@@ -153,7 +154,7 @@ trash_data |>
   )
 ```
 
-Professor Trash Wheel collected a total of 282.26 tons of trash. In June 2022, Gwynnda collected 18120 cigarette butts.
+Professor Trash Wheel collected a total of 294.96 tons of trash. In June 2022, Gwynnda collected 18120 cigarette butts.
 
 
 
